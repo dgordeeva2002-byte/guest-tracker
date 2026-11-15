@@ -50,7 +50,7 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}
     <input type="hidden" id="guestId">
     <div class="field"><label for="name">Guest name *</label><input id="name" required placeholder="e.g. Anna Zimmermann"></div>
     <div class="two">
-      <div class="field"><label for="nationality">Nationality</label><input id="nationality" list="countries" placeholder="Start typing…"><datalist id="countries"></datalist></div>
+      <div class="field"><label for="natSelect">Nationality</label><select id="natSelect"><option value="">Select…</option><option>🇩🇪</option><option>🇨🇭</option><option>🇦🇹</option><option>🇷🇺</option><option>🇧🇾</option><option>🇺🇦</option><option value="__other">Other</option></select><input id="nationality" placeholder="Enter flag, e.g. 🇫🇷" style="display:none"></div>
       <div class="field"><label for="room">Room / Villa</label><input id="room" placeholder="e.g. 128"></div>
     </div>
     <div class="field"><label for="checkout">Check-out date *</label><input id="checkout" type="date" required></div>
@@ -66,7 +66,9 @@ const DB_NAME='guest-tracker-local', STORE='guests';
 let db, currentTab='active', guests=[];
 const $=id=>document.getElementById(id);
 const countries=['Argentina','Australia','Austria','Bahrain','Bangladesh','Belgium','Brazil','Bulgaria','Cambodia','Canada','China','Croatia','Cyprus','Czech Republic','Denmark','Egypt','Estonia','Finland','France','Germany','Greece','Hong Kong','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Israel','Italy','Japan','Jordan','Kazakhstan','Kuwait','Latvia','Lebanon','Lithuania','Luxembourg','Malaysia','Maldives','Mexico','Monaco','Mongolia','Nepal','Netherlands','New Zealand','Norway','Oman','Pakistan','Philippines','Poland','Portugal','Qatar','Romania','Russia','Saudi Arabia','Serbia','Singapore','Slovakia','Slovenia','South Africa','South Korea','Spain','Sri Lanka','Sweden','Switzerland','Taiwan','Thailand','Turkey','Ukraine','United Arab Emirates','United Kingdom','United States','Vietnam'];
-countries.forEach(c=>{let o=document.createElement('option');o.value=c;$('countries').appendChild(o)});
+const FLAGS=['🇩🇪','🇨🇭','🇦🇹','🇷🇺','🇧🇾','🇺🇦'];
+function setNat(v){v=v||'';const sel=$('natSelect'),inp=$('nationality');inp.value=v;if(!v){sel.value='';inp.style.display='none'}else if(FLAGS.includes(v)){sel.value=v;inp.style.display='none'}else{sel.value='__other';inp.style.display='block'}}
+$('natSelect').onchange=()=>{const sel=$('natSelect'),inp=$('nationality');if(sel.value==='__other'){inp.value='';inp.style.display='block';inp.focus()}else{inp.value=sel.value;inp.style.display='none'}};
 function openDB(){return new Promise((resolve,reject)=>{let r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{let d=r.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 function tx(mode='readonly'){return db.transaction(STORE,mode).objectStore(STORE)}
 function all(){return new Promise((res,rej)=>{let r=tx().getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -98,8 +100,8 @@ const ARCHIVE_DAYS=3;
 async function purgeOld(){let list=await all();for(const g of list){if(g.checkout&&dateDiff(g.checkout)<=-ARCHIVE_DAYS)await remove(g.id)}}
 async function refresh(){await purgeOld();guests=await all();render()}
 function openModal(){ $('overlay').classList.add('show');setTimeout(()=>$('name').focus(),100)}
-function closeModal(){$('overlay').classList.remove('show');$('guestForm').reset();$('guestId').value='';$('deleteBtn').style.display='none';$('formTitle').textContent='Add guest'}
-function editGuest(id){let g=guests.find(x=>x.id===id);if(!g)return;$('guestId').value=g.id;$('name').value=g.name;$('nationality').value=g.nationality||'';$('room').value=g.room||'';$('checkout').value=g.checkout;$('notes').value=g.notes||'';$('formTitle').textContent='Edit guest';$('deleteBtn').style.display='block';openModal()}
+function closeModal(){$('overlay').classList.remove('show');$('guestForm').reset();setNat('');$('guestId').value='';$('deleteBtn').style.display='none';$('formTitle').textContent='Add guest'}
+function editGuest(id){let g=guests.find(x=>x.id===id);if(!g)return;$('guestId').value=g.id;$('name').value=g.name;setNat(g.nationality);$('room').value=g.room||'';$('checkout').value=g.checkout;$('notes').value=g.notes||'';$('formTitle').textContent='Edit guest';$('deleteBtn').style.display='block';openModal()}
 $('addBtn').onclick=()=>{closeModal();openModal()};$('closeModal').onclick=closeModal;$('cancelBtn').onclick=closeModal;
 $('guestForm').onsubmit=async e=>{e.preventDefault();let id=$('guestId').value||crypto.randomUUID();let old=guests.find(g=>g.id===id)||{};await save({...old,id,name:$('name').value.trim(),nationality:$('nationality').value.trim(),room:$('room').value.trim(),checkout:$('checkout').value,notes:$('notes').value.trim()});closeModal();await refresh();toast('Guest saved')};
 $('deleteBtn').onclick=async()=>{let id=$('guestId').value;if(id&&confirm('Delete this guest permanently?')){await remove(id);closeModal();await refresh();toast('Guest deleted')}};
