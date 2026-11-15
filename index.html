@@ -104,7 +104,8 @@ $('overlay').addEventListener('click',e=>{if(e.target===$('overlay'))closeModal(
 $('search').oninput=render;$('nationalityFilter').onchange=render;
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{currentTab=b.dataset.tab;document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));render()});
 function toast(s){$('toast').textContent=s;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2100)}
-$('backupBtn').onclick=()=>{let blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),guests},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='guest-tracker-backup-'+localDate()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};\n$('restoreBtn').onclick=()=> $('importFile').click();
+$('backupBtn').onclick=()=>{let blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),guests},null,2)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='guest-tracker-backup-'+localDate()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+$('restoreBtn').onclick=()=> $('importFile').click();
 $('importFile').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let data=JSON.parse(await f.text()),arr=Array.isArray(data)?data:data.guests;if(!Array.isArray(arr))throw Error();if(confirm('Import '+arr.length+' guest records? Existing records with matching IDs will be replaced.')){for(let g of arr)if(g.id&&g.name&&g.checkout)await save(g);await refresh();toast('Backup imported')}}catch{alert('This backup file could not be read.')}e.target.value=''};
 (async()=>{try{db=await openDB();await refresh();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});}catch(e){alert('Local database could not be opened. Please use Safari.')}})();
 </script>
